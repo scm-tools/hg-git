@@ -1088,8 +1088,16 @@ class GitHandler(object):
         for tag, sha in self.repo.tags().iteritems():
             if self.repo.tagtype(tag) in ('global', 'git'):
                 tag = tag.replace(' ', '_')
+                validTag = True
+                for c in tag:
+                    if c in '<>':
+                        validTag = False
                 target = self.map_git_get(hex(sha))
-                if target is not None:
+                if not validTag:
+                    self.repo.ui.warn(
+                        'Skipping export of tag "%s", because its '
+                        'invalid.\n' % tag)
+                elif target is not None:
                     tag_refname = 'refs/tags/' + tag
                     if(check_ref_format(tag_refname)):
                       self.git.refs[tag_refname] = target
