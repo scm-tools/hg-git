@@ -439,24 +439,34 @@ class GitHandler(object):
         commit.author = self.get_git_author(ctx)
         commit.author_time = int(time)
         commit.author_timezone = -timezone
-
+        # When there is no committer date timestamp, then we suppose there is no committer,
+        # use author information instead
+        has_commiter = False
         if 'committer' in extra:
             # fixup timezone
             (name, timestamp, timezone) = extra['committer'].rsplit(' ', 2)
             commit.committer = name
             commit.commit_time = timestamp
-
-            # work around a timezone format change
-            if int(timezone) % 60 != 0: #pragma: no cover
-                timezone = parse_timezone(timezone)
-                # Newer versions of Dulwich return a tuple here
-                if isinstance(timezone, tuple):
-                    timezone, neg_utc = timezone
-                    commit._commit_timezone_neg_utc = neg_utc
-            else:
-                timezone = -int(timezone)
-            commit.commit_timezone = timezone
-        else:
+            tz = 0
+            try:
+                tz = int(timezone)
+            except:
+                has_commiter = False
+                self.repo.ui.warn(
+                    'The author has no time information: (%s).\n' % extra['committer'])
+                pass
+            if has_commiter:
+                # work around a timezone format change
+                if tz % 60 != 0: #pragma: no cover
+                    timezone = parse_timezone(timezone)
+                    # Newer versions of Dulwich return a tuple here
+                    if isinstance(timezone, tuple):
+                        timezone, neg_utc = timezone
+                        commit._commit_timezone_neg_utc = neg_utc
+                else:
+                    timezone = -tz
+                commit.commit_timezone = timezone
+        if not has_commiter:
             commit.committer = commit.author
             commit.commit_time = commit.author_time
             commit.commit_timezone = commit.author_timezone
