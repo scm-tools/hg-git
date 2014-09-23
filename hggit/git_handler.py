@@ -418,12 +418,25 @@ class GitHandler(object):
         commit.author_time = int(time)
         commit.author_timezone = -timezone
 
-        if 'committer' in extra:
-            # fixup timezone
-            (name, timestamp, timezone) = extra['committer'].rsplit(' ', 2)
-            commit.committer = name
-            commit.commit_time = timestamp
+        def parseInt(s):
+            try:
+                return int(s)
+            except:
+                return None
 
+        (name, timestamp, timezone) = (None, None, None) 
+        if 'committer' in extra:
+            committer = extra['committer']
+            (name, timestamp, timezone) = committer.rsplit(' ', 2)
+            if parseInt(timezone) == None or parseInt(timestamp) == None:
+                name = committer.strip();
+                (timestamp, timezone) = (None, None) 
+
+        commit.committer = name or commit.author
+        commit.commit_time = timestamp or commit.author_time
+
+        if timezone != None:
+            # fixup timezone
             # work around a timezone format change
             if int(timezone) % 60 != 0: #pragma: no cover
                 timezone = parse_timezone(timezone)
@@ -435,8 +448,6 @@ class GitHandler(object):
                 timezone = -int(timezone)
             commit.commit_timezone = timezone
         else:
-            commit.committer = commit.author
-            commit.commit_time = commit.author_time
             commit.commit_timezone = commit.author_timezone
 
         commit.parents = []
