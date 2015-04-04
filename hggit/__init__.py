@@ -168,9 +168,15 @@ if (getattr(dirstate, 'rootcache', False) and
 def git_cleanup(ui, repo):
     '''clean up Git commit map after history editing'''
     new_map = []
+    githandler = repo.githandler
     for line in repo.opener(GitHandler.map_file):
         gitsha, hgsha = line.strip().split(' ', 1)
-        if hgsha in repo:
+        gitcommit = None
+        try:
+            gitcommit = githandler.git[gitsha]
+        except KeyError:
+            gitcommit = None
+        if gitcommit and (hgsha in repo):
             new_map.append('%s %s\n' % (gitsha, hgsha))
     f = repo.opener(GitHandler.map_file, 'wb')
     map(f.write, new_map)
