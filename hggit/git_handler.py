@@ -306,6 +306,9 @@ class GitHandler(object):
 
     def push(self, remote, revs, force):
         self.export_commits()
+        self.ui.status("Converting to git finished")
+        if not force: # If there is not force, then only do hg to git convert
+            return None
         old_refs, new_refs = self.upload_pack(remote, revs, force)
         remote_name = self.remote_name(remote)
 
