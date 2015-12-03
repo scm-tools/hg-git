@@ -48,6 +48,9 @@ import gitrepo, hgrepo
 from git_handler import GitHandler
 import verify
 
+version = [int(x) for x in hgutil.version().split('.')]
+versionTotal = version[0]*10000 + version[1] * 100 + version[2]
+
 testedwith = '2.8.2 3.0.1'
 buglink = 'https://bitbucket.org/durin42/hg-git/issues'
 
@@ -86,7 +89,8 @@ def _local(path):
         return gitrepo
     return _oldlocal(path)
 
-hg.schemes['file'] = _local
+if versionTotal <= 30002:
+  hg.schemes['file'] = _local
 
 hgdefaultdest = hg.defaultdest
 def defaultdest(source):
@@ -103,7 +107,7 @@ def safebranchrevs(orig, lrepo, repo, branches, revs):
     if hgutil.safehasattr(lrepo, 'changelog') and co not in lrepo.changelog:
         co = None
     return revs, co
-if getattr(hg, 'addbranchrevs', False):
+if versionTotal<= 30002 and getattr(hg, 'addbranchrevs', False):
     extensions.wrapfunction(hg, 'addbranchrevs', safebranchrevs)
 
 def extsetup(ui):
@@ -151,7 +155,7 @@ def gverify(ui, repo, **opts):
     ctx = scmutil.revsingle(repo, opts.get('rev'), '.')
     return verify.verify(ui, repo, ctx)
 
-if (getattr(dirstate, 'rootcache', False) and
+if versionTotal <= 300 and (getattr(dirstate, 'rootcache', False) and
     getattr(ignore, 'readpats', False)):
     # only install our dirstate wrapper if it has a hope of working
     import gitdirstate
